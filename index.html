@@ -31,6 +31,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input {
+      user-select: auto;
+      -webkit-user-select: auto;
     }
 
     h1 {
@@ -228,6 +235,7 @@
     <button id="prevBtn">← 前の月</button>
     <button id="todayBtn">今日</button>
     <button id="nextBtn">次の月 →</button>
+    <button id="copyMonthBtn" style="background:#8b5cf6;">今月の予定を来月にコピー</button>
     <button id="printBtn">🖨 印刷</button>
   </div>
   <table class="calendar" id="calendar"></table>
@@ -236,7 +244,6 @@
   <div class="modal" id="modal">
     <div class="modal-content">
       <h2 id="modalDate"></h2>
-      <input type="text" id="eventTitle" placeholder="タイトル">
       <input type="text" id="eventTitle" placeholder="タイトル">
       <div class="time-inputs">
         <input type="number" id="eventHour" min="0" max="23" placeholder="時">
@@ -368,6 +375,50 @@
       document.getElementById('prevBtn').onclick = () => { viewDate.setMonth(viewDate.getMonth() - 1); renderCalendar(); };
       document.getElementById('nextBtn').onclick = () => { viewDate.setMonth(viewDate.getMonth() + 1); renderCalendar(); };
       document.getElementById('todayBtn').onclick = () => { viewDate = new Date(); renderCalendar(); };
+
+      // 今月の予定を来月にコピー
+      document.getElementById('copyMonthBtn').onclick = () => {
+        if (!confirm(`${viewDate.getFullYear()}年${viewDate.getMonth() + 1}月の予定をすべて翌月にコピーしますか？`)) return;
+
+        const currentYear = viewDate.getFullYear();
+        const currentMonth = viewDate.getMonth();
+
+        // 翌月の計算
+        const nextDate = new Date(currentYear, currentMonth + 1, 1);
+        const nextYear = nextDate.getFullYear();
+        const nextMonth = nextDate.getMonth();
+
+        let copyCount = 0;
+
+        // 既存のイベントを走査
+        Object.keys(events).forEach(dateKey => {
+          const dateParts = dateKey.split('-');
+          const y = parseInt(dateParts[0]);
+          const m = parseInt(dateParts[1]) - 1;
+          const d = parseInt(dateParts[2]);
+
+          // 表示中の月のイベントのみ対象
+          if (y === currentYear && m === currentMonth) {
+            // 翌月の同日が存在するか確認 (例: 1/31 -> 2/31は不正なのでスキップされる)
+            const targetDateTest = new Date(nextYear, nextMonth, d);
+            if (targetDateTest.getMonth() === nextMonth) {
+              const targetKey = targetDateTest.toISOString().split('T')[0];
+
+              if (!events[targetKey]) events[targetKey] = [];
+
+              events[dateKey].forEach(evt => {
+                events[targetKey].push({ ...evt }); // コピーを作成
+                copyCount++;
+              });
+            }
+          }
+        });
+
+        saveEvents();
+        alert(`${copyCount}件の予定を翌月にコピーしました。`);
+        renderCalendar();
+      };
+
       document.getElementById('printBtn').onclick = () => window.print();
 
       // モーダル操作
