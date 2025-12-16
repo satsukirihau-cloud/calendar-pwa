@@ -144,10 +144,31 @@
       border-radius: 4px;
     }
 
+    .time-inputs {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: 6px 0;
+    }
+
+    .time-inputs input {
+      width: 60px;
+      text-align: center;
+    }
+
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+
       body {
         background: white;
         color: black;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
       }
 
       .controls,
@@ -156,27 +177,46 @@
       }
 
       h1 {
-        font-size: 32px;
-        margin-bottom: 20px;
+        font-size: 24px;
+        margin: 0 0 10px 0;
+        text-align: left;
+      }
+
+      .calendar {
+        width: 100%;
+        /* ページの残りの高さを計算 (タイトル分を除く) */
+        height: calc(100vh - 50px);
+        table-layout: fixed;
       }
 
       .calendar th {
         background: white;
         border: 1px solid black;
+        padding: 4px;
+        height: 30px;
       }
 
       .calendar td {
-        height: 120px;
-        font-size: 14px;
         border: 1px solid black;
+        /* 行の高さを均等に広げる */
+        height: auto;
+        vertical-align: top;
+        padding: 4px;
+      }
+
+      /* 行の高さを強制的に均等化するためにtrに高さを指定 */
+      .calendar tr {
+        height: 1fr;
       }
 
       .event {
-        font-size: 13px;
+        font-size: 11px;
         background: white;
         color: black;
         border: 1px solid black;
         box-shadow: none;
+        margin: 1px 0;
+        padding: 2px;
       }
     }
   </style>
@@ -197,7 +237,12 @@
     <div class="modal-content">
       <h2 id="modalDate"></h2>
       <input type="text" id="eventTitle" placeholder="タイトル">
-      <input type="text" id="eventTime" placeholder="時間（任意）">
+      <input type="text" id="eventTitle" placeholder="タイトル">
+      <div class="time-inputs">
+        <input type="number" id="eventHour" min="0" max="23" placeholder="時">
+        <span>:</span>
+        <input type="number" id="eventMinute" min="0" max="59" placeholder="分">
+      </div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
         <button id="saveEvent">保存</button>
         <button id="deleteEvent" style="background:#ef4444;">削除</button>
@@ -262,7 +307,13 @@
             const data = events[selectedDate][editingIndex];
             document.getElementById('modalDate').textContent = selectedDate;
             document.getElementById('eventTitle').value = data.title;
-            document.getElementById('eventTime').value = data.time || '';
+
+            // 時間のパース (HH:MM)
+            const timeStr = data.time || '';
+            const [h, m] = timeStr.split(':');
+            document.getElementById('eventHour').value = h || '';
+            document.getElementById('eventMinute').value = m || '';
+
             document.getElementById('modal').style.display = 'flex';
           });
 
@@ -306,7 +357,8 @@
             editingIndex = null;
             document.getElementById('modalDate').textContent = selectedDate;
             document.getElementById('eventTitle').value = '';
-            document.getElementById('eventTime').value = '';
+            document.getElementById('eventHour').value = '';
+            document.getElementById('eventMinute').value = '';
             document.getElementById('modal').style.display = 'flex';
           });
         });
@@ -321,7 +373,16 @@
       // モーダル操作
       document.getElementById('saveEvent').onclick = () => {
         const title = document.getElementById('eventTitle').value.trim();
-        const time = document.getElementById('eventTime').value.trim();
+        // 時間の結合
+        const h = document.getElementById('eventHour').value;
+        const m = document.getElementById('eventMinute').value;
+        let time = '';
+        if (h || m) {
+          const hh = (h || '0').padStart(2, '0');
+          const mm = (m || '0').padStart(2, '0');
+          time = `${hh}:${mm}`;
+        }
+
         if (!title) return alert('タイトルを入力してください');
         if (!events[selectedDate]) events[selectedDate] = [];
         if (editingIndex != null) {
