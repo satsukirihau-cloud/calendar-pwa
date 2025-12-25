@@ -246,9 +246,13 @@
       <h2 id="modalDate"></h2>
       <input type="text" id="eventTitle" placeholder="タイトル">
       <div class="time-inputs">
-        <input type="number" id="eventHour" min="0" max="23" placeholder="時">
+        <input type="number" id="eventStartHour" min="0" max="23" placeholder="時">
         <span>:</span>
-        <input type="number" id="eventMinute" min="0" max="59" placeholder="分">
+        <input type="number" id="eventStartMinute" min="0" max="59" placeholder="分">
+        <span>-</span>
+        <input type="number" id="eventEndHour" min="0" max="23" placeholder="時">
+        <span>:</span>
+        <input type="number" id="eventEndMinute" min="0" max="59" placeholder="分">
       </div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
         <button id="saveEvent">保存</button>
@@ -315,11 +319,27 @@
             document.getElementById('modalDate').textContent = selectedDate;
             document.getElementById('eventTitle').value = data.title;
 
-            // 時間のパース (HH:MM)
+            // 時間のパース (HH:MM-HH:MM or HH:MM)
             const timeStr = data.time || '';
-            const [h, m] = timeStr.split(':');
-            document.getElementById('eventHour').value = h || '';
-            document.getElementById('eventMinute').value = m || '';
+            const [startStr, endStr] = timeStr.split('-');
+
+            if (startStr) {
+              const [sh, sm] = startStr.split(':');
+              document.getElementById('eventStartHour').value = sh || '';
+              document.getElementById('eventStartMinute').value = sm || '';
+            } else {
+              document.getElementById('eventStartHour').value = '';
+              document.getElementById('eventStartMinute').value = '';
+            }
+
+            if (endStr) {
+              const [eh, em] = endStr.split(':');
+              document.getElementById('eventEndHour').value = eh || '';
+              document.getElementById('eventEndMinute').value = em || '';
+            } else {
+              document.getElementById('eventEndHour').value = '';
+              document.getElementById('eventEndMinute').value = '';
+            }
 
             document.getElementById('modal').style.display = 'flex';
           });
@@ -364,8 +384,10 @@
             editingIndex = null;
             document.getElementById('modalDate').textContent = selectedDate;
             document.getElementById('eventTitle').value = '';
-            document.getElementById('eventHour').value = '';
-            document.getElementById('eventMinute').value = '';
+            document.getElementById('eventStartHour').value = '';
+            document.getElementById('eventStartMinute').value = '';
+            document.getElementById('eventEndHour').value = '';
+            document.getElementById('eventEndMinute').value = '';
             document.getElementById('modal').style.display = 'flex';
           });
         });
@@ -425,13 +447,22 @@
       document.getElementById('saveEvent').onclick = () => {
         const title = document.getElementById('eventTitle').value.trim();
         // 時間の結合
-        const h = document.getElementById('eventHour').value;
-        const m = document.getElementById('eventMinute').value;
+        const sh = document.getElementById('eventStartHour').value;
+        const sm = document.getElementById('eventStartMinute').value;
+        const eh = document.getElementById('eventEndHour').value;
+        const em = document.getElementById('eventEndMinute').value;
+
         let time = '';
-        if (h || m) {
-          const hh = (h || '0').padStart(2, '0');
-          const mm = (m || '0').padStart(2, '0');
-          time = `${hh}:${mm}`;
+        if (sh || sm) {
+          const startHH = (sh || '0').padStart(2, '0');
+          const startMM = (sm || '0').padStart(2, '0');
+          time = `${startHH}:${startMM}`;
+
+          if (eh || em) {
+            const endHH = (eh || '0').padStart(2, '0');
+            const endMM = (em || '0').padStart(2, '0');
+            time += `-${endHH}:${endMM}`;
+          }
         }
 
         if (!title) return alert('タイトルを入力してください');
