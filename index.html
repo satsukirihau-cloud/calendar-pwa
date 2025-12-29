@@ -885,27 +885,15 @@
           const li = document.createElement('li');
           li.className = 'history-item';
           li.draggable = true;
+          li.dataset.id = item.id; // Add data-id to the li for easy lookup
 
-          // Drag start
+          // Drag start is safe to keep here or delegate. Keeping here is simple for now.
           li.addEventListener('dragstart', e => {
             e.dataTransfer.setData('text/plain', JSON.stringify({
               type: 'history',
               title: item.title,
               time: item.time
             }));
-          });
-
-          // Click to edit
-          li.addEventListener('click', (e) => {
-            // 削除ボタンクリック時は編集モードにしない
-            if (e.target.classList.contains('delete-history')) return;
-
-            editingId = item.id;
-            historyTitleEl.value = item.title;
-            historyTimeEl.value = item.time;
-            addHistoryBtn.textContent = '更新する';
-            addHistoryBtn.style.background = '#16a34a'; // Green
-            cancelHistoryBtn.style.display = 'block';
           });
 
           const contentDisplay = item.time
@@ -918,21 +906,41 @@
                 `;
           historyListEl.appendChild(li);
         });
-
-        // 削除ボタン
-        document.querySelectorAll('.delete-history').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = e.target.dataset.id; // 文字列として取得
-            if (confirm('この履歴を削除しますか？')) {
-              historyData = historyData.filter(d => d.id !== id);
-              if (editingId === id) resetInput();
-              saveHistory();
-              renderHistory();
-            }
-          });
-        });
       }
+
+      // --- Event Delegation for Edit & Delete ---
+      historyListEl.addEventListener('click', (e) => {
+        // 1. Delete
+        const deleteBtn = e.target.closest('.delete-history');
+        if (deleteBtn) {
+          e.stopPropagation();
+          const id = deleteBtn.dataset.id;
+          if (confirm('この履歴を削除しますか？')) {
+            historyData = historyData.filter(d => d.id !== id);
+            if (editingId === id) resetInput();
+            saveHistory();
+            renderHistory();
+          }
+          return;
+        }
+
+        // 2. Edit (Item Click)
+        const itemLi = e.target.closest('.history-item');
+        if (itemLi) {
+          const id = itemLi.dataset.id; // Get ID from the li's data-id
+          if (id) {
+            const item = historyData.find(d => d.id === id);
+            if (item) {
+              editingId = item.id;
+              historyTitleEl.value = item.title;
+              historyTimeEl.value = item.time;
+              addHistoryBtn.textContent = '更新する';
+              addHistoryBtn.style.background = '#16a34a'; // Green
+              cancelHistoryBtn.style.display = 'block';
+            }
+          }
+        }
+      });
 
       addHistoryBtn.addEventListener('click', () => {
         const title = historyTitleEl.value.trim();
